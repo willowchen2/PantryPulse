@@ -4,8 +4,10 @@ from assigner import assign_food_dist
 import os
 from flask import Flask, request, jsonify
 from db import db, Pantry 
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.debug = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
