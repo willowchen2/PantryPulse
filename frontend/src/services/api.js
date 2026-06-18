@@ -27,7 +27,7 @@ export const apiService = {
             });
             if(!response.ok) throw new Error("Optimization request failed");
             const jsonResponse = await response.json();
-            return jsonResponse.data.plan;
+            return jsonResponse;
         } catch (error) {
             console.error("Error running optimization: ", error);
             throw error;
