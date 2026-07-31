@@ -8,7 +8,7 @@ export const apiService = {
             const response = await fetch(`${API_BASE_URL}/pantries`);
             if (!response.ok) throw new Error(`Network response was not ok`);
             const jsonResponse = await response.json();
-            return jsonResponse.data.pantries; //arr of pantries
+            return jsonResponse.data.pantries; //arrary of pantries
         } catch (error) {
             console.error("Error fetching pantries: ", error);
             throw error;

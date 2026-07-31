@@ -12,11 +12,12 @@ export default function Dashboard() {
     const [optimizationResults, setOptimizationResults] = useState(null);
     const [optimizing, setOptimizing] = useState(false)
 
+
     useEffect(() => {
         async function loadDashboardData() {
             try {
                 setLoading(true);
-                const data = await apiService.getPantries(); //js messenger to get Flask backend
+                const data = await apiService.getPantries(); //js messenger to get Flask backend db
                 setPantries(data);
             } catch (err) {
                 setError("Couldn't connect to the PantryPulse server.");
@@ -37,34 +38,33 @@ export default function Dashboard() {
     };
 
     const handleRunOptimization = async () => {
-        try{
+        try {
             setOptimizing(true);
             setError(null);
             const result = await apiService.optimizeDistribution(donation);
 
             console.log("True Payload received from Flask:", result);
-            if(result.success){
+            if (result.success) {
                 setOptimizationResults(result.data.plan)
             } else {
                 setError("The optimization engine encountered an issue solving the constraints.")
             }
-        } catch(err){
+        } catch (err) {
             setError("Failure to communicate with the engine backend.")
         } finally {
             setOptimizing(false)
         }
     };
 
-
     //styling
     return (
         <div style={styles.container}>
             <header style={styles.header}>
                 <h1 style={styles.title}>PantryPulse Dashboard</h1>
-                <p style={styles.subtitle}>Real-time community fridge capacities and distribution priorities</p>
+                <p style={styles.subtitle}>Algorithmic dispatch & real-time food pantry allocation</p>
             </header>
             <div style={styles.controlPanel}>
-                <h2 style={styles.panelTitle}>🚚 New Donation Delivery Truck Intake</h2>
+                <h2 style={styles.panelTitle}>🛒 New Donation Delivery Intake</h2>
                 <p style={styles.panelSubtitle}>Drag the sliders to log the weight (lbs) of arriving donation categories:</p>
 
                 <div style={styles.sliderGrid}>
@@ -85,11 +85,12 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
-                <button style={{...styles.button,
-                    backgroundColor: optimizing? '#94a3b8' : '#3b82f6',
+                <button style={{
+                    ...styles.button,
+                    backgroundColor: optimizing ? '#94a3b8' : '#3b82f6',
                     cursor: optimizing ? 'not-allowed' : 'pointer'
                 }} onClick={handleRunOptimization}
-                   disabled={optimizing}
+                    disabled={optimizing}
                 >
                     {optimizing ? 'Computing optimal allocation plan...' : 'Run Resource Optimization Engine'}
                 </button>
@@ -97,22 +98,38 @@ export default function Dashboard() {
 
             {/* Main Fridge Grid Display */}
             <div style={styles.grid}>
-                {pantries.map((pantry) => (
-                    <div key={pantry.id} style={styles.card}>
-                        <h3 style={styles.cardTitle}>{pantry.name}</h3>
-                        <p style={styles.cardDetail}><strong>Distance:</strong> {pantry.distance_miles} miles</p>
-                        <p style={styles.cardDetail}><strong>Available Space:</strong> {pantry.free_space_lbs} lbs</p>
+                {pantries.map((pantry) => {
+                    const fridgeAllocation = optimizationResults ? optimizationResults[pantry.name] : null;
 
-                        <div style={styles.vectorBox}>
-                            <strong style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Current Need Vector:</strong>
-                            <div style={styles.vectorRow}>
-                                {pantry.need_vector && pantry.need_vector.map((val, idx) => (
-                                    <span key={idx} style={styles.vectorBadge}>{val}</span>
-                                ))}
+                    return (
+                        <div key={pantry.id} style={styles.card}>
+                            <h3 style={styles.cardTitle}>{pantry.name}</h3>
+                            <p style={styles.cardDetail}><strong>Distance:</strong> {pantry.distance_miles} miles</p>
+                            <p style={styles.cardDetail}><strong>Available Space:</strong> {pantry.free_space_lbs} lbs</p>
+
+                            {fridgeAllocation && Object.keys(fridgeAllocation).length > 0 && (
+                                <div style={styles.allocationBox}>
+                                    <strong style={styles.allocationTitle}>🎯 Recommended Drop-off Plan:</strong>
+                                    {Object.entries(fridgeAllocation).map(([catIdx, weight]) => (
+                                        <div key={catIdx} style={styles.allocationLine}>
+                                            <span>{CATEGORIES[parseInt(catIdx)]}:</span>
+                                            <span style={styles.allocationWeight}>+{weight} lbs</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div style={styles.vectorBox}>
+                                <strong style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>Current Need Vector:</strong>
+                                <div style={styles.vectorRow}>
+                                    {pantry.need_vector && pantry.need_vector.map((val, idx) => (
+                                        <span key={idx} style={styles.vectorBadge}>{val}</span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
@@ -143,5 +160,31 @@ const styles = {
     vectorBox: { marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #eee' },
     vectorRow: { display: 'flex', gap: '6px', marginTop: '6px' },
     vectorBadge: { backgroundColor: '#f0f4f8', color: '#334e68', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' },
-    center: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', fontFamily: 'sans-serif' }
+    center: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', fontFamily: 'sans-serif' },
+    allocationBox: {
+        marginTop: '16px',
+        padding: '14px',
+        backgroundColor: '#f0fdf4', 
+        border: '1px solid #bbf7d0', 
+        borderRadius: '8px'
+    },
+    allocationTitle: {
+        color: '#166534',
+        fontSize: '13px',
+        display: 'block',
+        marginBottom: '8px',
+        fontWeight: 'bold'
+    },
+    allocationLine: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '13px',
+        color: '#14532d',
+        margin: '4px 0'
+    },
+    allocationWeight: {
+        fontWeight: 'bold',
+        color: '#15803d'
+    },
+
 };

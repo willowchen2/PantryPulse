@@ -9,12 +9,12 @@ def assign_food_dist(donation_vector, pantries_dict, distances):
     #decision variable: x[p,c] = amt of category c sent to pantry p
     x = pulp.LpVariable.dicts("shipment", ((p,c) for p in pantries for c in categories), lowBound=0,cat='Integer')
     
-    #binary decision variable, 0 or 1
+    #binary decision variable, 0 or 1, use it or not
     y = pulp.LpVariable.dicts("use_pantry",pantries, cat ='Binary')
     
     #objective function to max net utility of chosen pantry
     utility = []
-    dist_penalty = 0.05
+    dist_penalty = 0.05 #adjustable
     for p in pantries:
         for c in categories:
             reward_perLb = pantries_dict[p]["match_score"] - (dist_penalty*distances[p])

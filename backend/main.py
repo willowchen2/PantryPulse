@@ -17,6 +17,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 with app.app_context():
     db.create_all()
+    
+    if Pantry.query.count() == 0:
+        seed_pantries = [
+            Pantry(
+                name="Olympia Community Fridge A",
+                need_vector=[8, 2, 9, 1, 4],
+                free_space_lbs=50.0,
+                distance_miles=0.8
+            ),
+            Pantry(
+                name="Mutual Aid Fridge B",
+                need_vector=[1, 9, 2, 8, 3],
+                free_space_lbs=40.0,
+                distance_miles=2.3
+            ),
+            Pantry(
+                name="Westside Food Pantry C",
+                need_vector=[5, 5, 5, 5, 10],
+                free_space_lbs=60.0,
+                distance_miles=1.1
+            )
+        ]
+        db.session.add_all(seed_pantries)
+        db.session.commit()
 
 def success_response(data, code=200):
     return jsonify({"success": True, "data": data}), code
@@ -78,10 +102,51 @@ def get_all_pantries():
     return success_response({"pantries": pantries_list},200)
         
  #run the engine to solve the assignment problem   
+# @app.route("/api/optimize", methods=["POST"])
+# def run_optimization_pipeline():
+#     try:
+#         payload = request.json     
+#         donation_vector = payload.get("donation_vector") 
+        
+#         if not donation_vector:
+#             return failure_response("Missing donation_vector array", 400)    
+         
+#         db_pantries = Pantry.query.all()
+#         if not db_pantries:
+#             return failure_response("No pantries found in database.",400)
+        
+#         pantries_dict = {}
+#         distances = {}
+        
+#         for p in db_pantries:
+#             pantries_dict[p.name] = {
+#                 "need_vector": p.need_vector,
+#                 "free_space_lbs": p.free_space_lbs,
+#                 "distance_miles": p.distance_miles
+#             }
+#             distances[p.name] = p.distance_miles
+                       
+#         rankings = rank_pantry_needs(donation_vector, pantries_dict)
+#         for r in rankings:
+#             pantry_key = r["pantry_id"]
+#             pantries_dict[pantry_key]["match_score"] = r["match_score"]
+        
+#         plan = assign_food_dist(donation_vector, pantries_dict, distances)       
+#         return success_response({"plan": plan},200)
+    
+#     except KeyError as ke:
+#         return failure_response(f"Mapping mismatch: {str(ke)}",400)
+#     except Exception as e:
+#         return failure_response(f"Engine Error: {str(e)}",500)
+
+
+import json
+
+# run the engine to solve the assignment problem   
 @app.route("/api/optimize", methods=["POST"])
 def run_optimization_pipeline():
     try:
-        payload = request.json     
+        payload = request.json or {}  
         donation_vector = payload.get("donation_vector") 
         
         if not donation_vector:
@@ -89,31 +154,42 @@ def run_optimization_pipeline():
          
         db_pantries = Pantry.query.all()
         if not db_pantries:
-            return failure_response("No pantries found in database.",400)
+            return failure_response("No pantries found in database.", 400)
         
         pantries_dict = {}
         distances = {}
         
         for p in db_pantries:
+            # Ensure need_vector is a list in case SQLite stored JSON text
+            vec = p.need_vector
+            if isinstance(vec, str):
+                try:
+                    vec = json.loads(vec)
+                except Exception:
+                    vec = [int(x.strip()) for x in vec.strip("[]").split(",") if x.strip()]
+
             pantries_dict[p.name] = {
-                "need_vector": p.need_vector,
-                "free_space_lbs": p.free_space_lbs,
-                "distance_miles": p.distance_miles
+                "need_vector": vec,
+                "free_space_lbs": float(p.free_space_lbs),
+                "distance_miles": float(p.distance_miles)
             }
-            distances[p.name] = p.distance_miles
+            distances[p.name] = float(p.distance_miles)
                        
         rankings = rank_pantry_needs(donation_vector, pantries_dict)
         for r in rankings:
-            pantry_key = r["pantry_id"]
-            pantries_dict[pantry_key]["match_score"] = r["match_score"]
+            pantry_key = r.get("pantry_id")
+            if pantry_key in pantries_dict:
+                pantries_dict[pantry_key]["match_score"] = r.get("match_score", 0)
         
         plan = assign_food_dist(donation_vector, pantries_dict, distances)       
-        return success_response({"plan": plan},200)
+        return success_response({"plan": plan}, 200)
     
     except KeyError as ke:
-        return failure_response(f"Mapping mismatch: {str(ke)}",400)
+        print(f"❌ KeyError in /api/optimize: {str(ke)}")
+        return failure_response(f"Mapping mismatch key: {str(ke)}", 400)
     except Exception as e:
-        return failure_response(f"Engine Error: {str(e)}",500)
+        print(f"❌ Engine Error in /api/optimize: {str(e)}")
+        return failure_response(f"Engine Error: {str(e)}", 500)
     
 #update a pantry
 @app.route('/api/pantries/<int:pantry_id>', methods=["PUT"])

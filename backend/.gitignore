@@ -1,0 +1,10 @@
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.db
+*.sqlite3
+pantry_pulse.db
+**/pantry_pulse.db
+.pytest_cache/

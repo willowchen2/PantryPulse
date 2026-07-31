@@ -9,7 +9,7 @@ def cosine_similarity(vec1, vec2):
     norm_vec2 = np.linalg.norm(vecB)
     
     if norm_vec1 == 0 or norm_vec2 == 0:
-        return 0.0  # Avoid division by zero
+        return 0.0  # Avoid division by zero!
     
     return float(dot_product / (norm_vec1 * norm_vec2))
 
@@ -30,7 +30,7 @@ def rank_pantry_needs(donation_vector, pantries_dict):
     return sorted(rankings, key = lambda x : x["match_score"], reverse=True)
 
 if __name__ == "__main__":
-    # Sample Donation Vector: [Produce, Protein, Dairy, Grains, Shelf-Stable]
+    # SAMPLE Donation Vector: [Produce, Protein, Dairy, Grains, Shelf-Stable]
     sample_donation = [1, 2, 3, 4, 5]
     
     sample_pantries = {
@@ -47,6 +47,7 @@ if __name__ == "__main__":
             "distance_miles": 2.0
         }
     }
+    # returns ranked pantries in terms of how closely their needs align w/ the donor's stock (as a dict!)
     results = rank_pantry_needs(sample_donation, sample_pantries)
     for result in results:
         print(f"Pantry: {result['pantry_id']}, Match Score: {result['match_score']}, Distance: {result['distance_miles']} miles\n")

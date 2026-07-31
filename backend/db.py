@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 
 # Create the unified database object. 
-# This single object handles your engine, your sessions, and your table blueprints!
 db = SQLAlchemy()
 
 class Pantry(db.Model):
